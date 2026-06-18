@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="DALE AI"/>
+<meta name="theme-color" content="#0d0d14"/>
+<title>DALE AI</title>
+<link rel="manifest" href="/dale-ai/manifest.json"/>
+<link rel="apple-touch-icon" href="/dale-ai/icons/icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ── TOKENS ── */
+:root {
+  --bg:          #0d0d14;
+  --surface:     #13131e;
+  --surface2:    #1a1a28;
+  --border:      #252538;
+  --border2:     #2e2e48;
+  --text:        #ededf5;
+  --text2:       #9898b0;
+  --text3:       #55556a;
+
+  /* Claude — warm violet */
+  --cv:          #8b7cf8;
+  --cv2:         #b8acff;
+  --cv-dim:      rgba(139,124,248,0.12);
+  --cv-glow:     rgba(139,124,248,0.20);
+
+  /* Gemini — electric cyan */
+  --gm:          #06b6d4;
+  --gm2:         #67e8f9;
+  --gm-dim:      rgba(6,182,212,0.10);
+  --gm-glow:     rgba(6,182,212,0.18);
+
+  --ok:          #34d399;
+  --err:         #f87171;
+  --user-bg:     #1e1e30;
+
+  --radius-sm:   8px;
+  --radius:      12px;
+  --radius-lg:   18px;
+
+  --safe-t: env(safe-area-inset-top,0px);
+  --safe-b: env(safe-area-inset-bottom,0px);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;height:100dvh;overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* ── INSTALL BANNER ── */
+#install-banner{
+  display:none;align-items:center;gap:10px;
+  padding:10px 16px;padding-top:calc(10px + var(--safe-t));
+  background:linear-gradient(90deg,var(--cv),var(--cv2));
+  flex-shrink:0;
+}
+#install-banner.show{display:flex;}
+#install-banner p{font-size:12px;color:#fff;flex:1;line-height:1.4;}
+#install-banner strong{display:block;font-size:13px;font-weight:600;}
+.ib-btn{background:rgba(255,255,255,0.22);color:#fff;border:1px solid rgba(255,255,255,0.35);border-radius:var(--radius-sm);padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;}
+.ib-x{background:none;border:none;color:rgba(255,255,255,0.65);font-size:20px;cursor:pointer;line-height:1;}
+
+/* ── HEADER ── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 18px;padding-top:calc(13px + var(--safe-t));
+  background:var(--surface);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+#install-banner.show~header{padding-top:13px;}
+
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-ring{
+  position:relative;width:34px;height:34px;
+  background:linear-gradient(135deg,var(--cv),var(--cv2));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;color:#fff;letter-spacing:-0.5px;
+  box-shadow:0 0 16px var(--cv-glow);
+  flex-shrink:0;
+}
+.logo-name{font-size:16px;font-weight:700;letter-spacing:-0.3px;}
+.logo-name em{font-style:normal;color:var(--cv2);}
+
+.hdr-r{display:flex;align-items:center;gap:8px;}
+.pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok);animation:blink 2.4s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
+.btn-ghost{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:11px;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;transition:border-color .15s,color .15s;}
+.btn-ghost:active{border-color:var(--err);color:var(--err);}
+
+/* ── MODEL TABS ── */
+#tabs{
+  display:flex;background:var(--surface);border-bottom:1px solid var(--border);
+  flex-shrink:0;padding:0 6px;gap:2px;
+}
+.tab{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 8px;border:none;background:none;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
+  color:var(--text3);border-bottom:2px solid transparent;
+  transition:color .2s,border-color .2s,background .2s;border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+}
+.tab-ic{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.tab.cv .tab-ic{background:var(--cv);}
+.tab.gm .tab-ic{background:var(--gm);}
+.tab.both .tab-ic{background:linear-gradient(135deg,var(--cv),var(--gm));width:8px;height:8px;}
+.tab.cv.active{color:var(--cv2);border-bottom-color:var(--cv);background:var(--cv-dim);}
+.tab.gm.active{color:var(--gm2);border-bottom-color:var(--gm);background:var(--gm-dim);}
+.tab.both.active{color:var(--text);border-bottom-color:var(--cv2);background:rgba(139,124,248,0.06);}
+.tab-badge{font-size:9px;padding:1px 5px;border-radius:6px;font-weight:600;letter-spacing:.3px;}
+.tab.cv .tab-badge{background:var(--cv-dim);color:var(--cv2);}
+.tab.gm .tab-badge{background:var(--gm-dim);color:var(--gm2);}
+.tab.both .tab-badge{background:rgba(139,124,248,0.1);color:var(--cv2);}
+
+/* ── KEY PANELS ── */
+.key-row{
+  display:none;align-items:center;gap:8px;
+  padding:8px 14px;border-bottom:1px solid var(--border);
+  background:var(--surface);flex-shrink:0;
+}
+.key-row.on{display:flex;}
+.key-row label{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap;text-transform:uppercase;letter-spacing:.5px;}
+.key-row input{
+  flex:1;min-width:0;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);outline:none;
+  transition:border-color .2s;
+}
+#cv-row input:focus{border-color:var(--cv);}
+#gm-row input:focus{border-color:var(--gm);}
+.key-save{border:none;border-radius:var(--radius-sm);padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;color:#fff;}
+#cv-row .key-save{background:var(--cv);}
+#gm-row .key-save{background:var(--gm);}
+.key-saved{display:none;align-items:center;gap:6px;font-size:11px;color:var(--ok);cursor:pointer;white-space:nowrap;}
+.key-saved.on{display:flex;}
+.key-saved span{font-size:10px;color:var(--text3);}
+
+/* ── CHAT ── */
+#chat{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+#chat::-webkit-scrollbar{width:3px;}
+#chat::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── WELCOME ── */
+.welcome{display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px;margin:auto;padding:32px 16px;}
+.welcome-logo{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;flex-shrink:0;}
+.welcome-logo.cv-logo{background:linear-gradient(135deg,var(--cv),var(--cv2));box-shadow:0 8px 32px var(--cv-glow);}
+.welcome-logo.gm-logo{background:linear-gradient(135deg,var(--gm),var(--gm2));box-shadow:0 8px 32px var(--gm-glow);}
+.welcome-logo.both-logo{background:linear-gradient(135deg,var(--cv),var(--gm));box-shadow:0 8px 32px var(--cv-glow);}
+.welcome h2{font-size:22px;font-weight:700;letter-spacing:-.5px;color:var(--text);}
+.welcome p{font-size:13px;color:var(--text2);line-height:1.65;max-width:260px;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:4px;}
+.chip{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:20px;
+  padding:7px 14px;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;
+  transition:all .15s;
+}
+.chip.cv:active{border-color:var(--cv);color:var(--cv2);background:var(--cv-dim);}
+.chip.gm:active{border-color:var(--gm);color:var(--gm2);background:var(--gm-dim);}
+
+/* ── MESSAGES ── */
+.msg{display:flex;gap:9px;animation:up .22s ease;}
+.msg.u{flex-direction:row-reverse;}
+@keyframes up{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+
+.av{
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px;
+  letter-spacing:-.3px;
+}
+.msg.u .av{background:var(--user-bg);color:var(--cv2);border:1px solid var(--border2);}
+.msg.cv-msg .av{background:linear-gradient(135deg,var(--cv),var(--cv2));color:#fff;box-shadow:0 2px 10px var(--cv-glow);}
+.msg.gm-msg .av{background:linear-gradient(135deg,var(--gm),var(--gm2));color:#fff;box-shadow:0 2px 10px var(--gm-glow);}
+
+.bbl{max-width:80%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.68;word-break:break-word;}
+.msg.u .bbl{background:var(--user-bg);border:1px solid var(--border2);border-top-right-radius:3px;}
+.msg.cv-msg .bbl{background:var(--surface);border:1px solid var(--border);border-top-left-radius:3px;}
+.msg.gm-msg .bbl{background:#0d1520;border:1px solid #1a2a40;border-top-left-radius:3px;}
+
+.src-tag{font-size:9px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin-bottom:5px;opacity:.8;}
+.cv-tag{color:var(--cv2);}
+.gm-tag{color:var(--gm2);}
+
+.bbl pre{background:#09090f;border:1px solid var(--border);border-radius:8px;padding:10px;margin:8px 0;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;}
+.bbl code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#09090f;padding:2px 5px;border-radius:4px;}
+.cv-msg .bbl code{color:var(--cv2);}
+.gm-msg .bbl code{color:var(--gm2);}
+.u .bbl code{color:var(--cv2);}
+
+.bbl strong{font-weight:600;}
+.bbl ul,.bbl ol{padding-left:18px;margin:6px 0;}
+.bbl li{margin:3px 0;}
+
+/* ── TYPING ── */
+.tyd{display:flex;align-items:center;gap:4px;padding:2px 0;}
+.tyd s{width:5px;height:5px;border-radius:50%;display:block;animation:bo 1.1s infinite;}
+.tyd s:nth-child(2){animation-delay:.18s;}
+.tyd s:nth-child(3){animation-delay:.36s;}
+.cv-ty s{background:var(--cv);}
+.gm-ty s{background:var(--gm);}
+@keyframes bo{0%,60%,100%{transform:translateY(0);opacity:.35;}28%{transform:translateY(-5px);opacity:1;}}
+
+/* ── BOTH MODE ── */
+#both-wrap{display:none;flex:1;overflow:hidden;}
+#both-wrap.on{display:flex;}
+#both-wrap.on~#chat{display:none;}
+
+.bp{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border);}
+.bp:last-child{border-right:none;}
+.bp-hdr{padding:7px 11px;font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.bp-hdr.cv-hdr{background:var(--cv-dim);color:var(--cv2);border-bottom:1px solid rgba(139,124,248,.2);}
+.bp-hdr.gm-hdr{background:var(--gm-dim);color:var(--gm2);border-bottom:1px solid rgba(6,182,212,.2);}
+.bp-chat{flex:1;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;}
+.bp-chat::-webkit-scrollbar{width:2px;}
+.bp-chat::-webkit-scrollbar-thumb{background:var(--border);}
+
+.bb{padding:9px 11px;border-radius:10px;font-size:12px;line-height:1.65;word-break:break-word;}
+.bb.u-bb{background:var(--user-bg);border:1px solid var(--border2);margin-left:18%;font-size:11.5px;}
+.bb.cv-bb{background:var(--surface);border:1px solid var(--border);}
+.bb.gm-bb{background:#0d1520;border:1px solid #1a2a40;}
+.bb.err-bb{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);color:var(--err);font-size:11px;}
+
+/* ── INPUT ── */
+#input-area{
+  padding:11px 14px;padding-bottom:calc(11px + var(--safe-b));
+  border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;
+}
+.inp-wrap{
+  display:flex;align-items:flex-end;gap:8px;
+  background:var(--bg);border:1px solid var(--border2);
+  border-radius:var(--radius-lg);padding:9px 10px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.inp-wrap.cv-f:focus-within{border-color:var(--cv);box-shadow:0 0 0 2px var(--cv-dim);}
+.inp-wrap.gm-f:focus-within{border-color:var(--gm);box-shadow:0 0 0 2px var(--gm-dim);}
+
+#txt{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;
+  resize:none;max-height:110px;overflow-y:auto;
+}
+#txt::placeholder{color:var(--text3);}
+
+#send{
+  width:35px;height:35px;border:none;border-radius:10px;color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:opacity .15s,transform .1s;
+}
+#send.cv-s{background:linear-gradient(135deg,var(--cv),var(--cv2));box-shadow:0 2px 12px var(--cv-glow);}
+#send.gm-s{background:linear-gradient(135deg,var(--gm),var(--gm2));box-shadow:0 2px 12px var(--gm-glow);}
+#send:active{transform:scale(.9);}
+#send:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+
+.foot{text-align:center;font-size:10px;color:var(--text3);margin-top:6px;font-family:'JetBrains Mono',monospace;letter-spacing:.2px;}
+
+/* ── ERROR ── */
+.err-line{font-size:12px;color:var(--err);padding:9px 13px;background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:10px;}
+</style>
+</head>
+<body>
+
+<!-- INSTALL -->
+<div id="install-banner">
+  <p><strong>Install DALE AI</strong>Add to home screen for full app experience</p>
+  <button class="ib-btn" id="ib-btn">Install</button>
+  <button class="ib-x" onclick="dismissInstall()">×</button>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-ring">D</div>
+    <div class="logo-name">DALE <em>AI</em></div>
+  </div>
+  <div class="hdr-r">
+    <button class="btn-ghost" onclick="clearAll()">Clear</button>
+    <div class="pill"><div class="dot"></div>online</div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div id="tabs">
+  <button class="tab cv active" onclick="setMode('claude')">
+    <div class="tab-ic"></div>Claude<span class="tab-badge">Sonnet 4.6</span>
+  </button>
+  <button class="tab gm" onclick="setMode('gemini')">
+    <div class="tab-ic"></div>Gemini<span class="tab-badge">2.0 Free</span>
+  </button>
+  <button class="tab both" onclick="setMode('both')">
+    <div class="tab-ic"></div>Both<span class="tab-badge">Compare</span>
+  </button>
+</div>
+
+<!-- KEY ROWS -->
+<div class="key-row on" id="cv-row">
+  <label>Claude</label>
+  <input type="password" id="cv-key" placeholder="sk-ant-api03-…" autocomplete="off"/>
+  <button class="key-save" onclick="saveKey('cv')">Save</button>
+  <div class="key-saved" id="cv-saved" onclick="resetKey('cv')">✅ Saved <span>(tap to change)</span></div>
+</div>
+<div class="key-row" id="gm-row">
+  <label>Gemini</label>
+  <input type="password" id="gm-key" placeholder="AIzaSy…" autocomplete="off"/>
+  <button class="key-save" onclick="saveKey('gm')">Save</button>
+  <div class="key-saved" id="gm-saved" onclick="resetKey('gm')">✅ Saved <span>(tap to change)</span></div>
+</div>
+
+<!-- BOTH PANELS -->
+<div id="both-wrap">
+  <div class="bp">
+    <div class="bp-hdr cv-hdr">⚡ Claude Sonnet 4.6</div>
+    <div class="bp-chat" id="bp-cv"></div>
+  </div>
+  <div class="bp">
+    <div class="bp-hdr gm-hdr">✦ Gemini 2.0 Flash</div>
+    <div class="bp-chat" id="bp-gm"></div>
+  </div>
+</div>
+
+<!-- MAIN CHAT -->
+<div id="chat">
+  <div class="welcome" id="welcome">
+    <div class="welcome-logo cv-logo" id="wl-icon">D</div>
+    <h2 id="wl-title">Hey, I'm DALE AI</h2>
+    <p id="wl-sub">Your personal assistant — Claude Sonnet 4.6 or Gemini 2.0 Flash. Switch anytime or run both at once.</p>
+    <div class="chips" id="wl-chips">
+      <div class="chip cv" onclick="go('Write a Fiverr gig for social media design services')">Fiverr gig</div>
+      <div class="chip cv" onclick="go('Give me 5 micro-income ideas I can start this week')">Micro-income ideas</div>
+      <div class="chip cv" onclick="go('Write a client proposal email for a Canva design project')">Client proposal</div>
+      <div class="chip cv" onclick="go('What Canva templates sell best on Etsy right now?')">Canva tips</div>
+      <div class="chip cv" onclick="go('Create a 7-day Instagram content plan for a lifestyle brand')">Content plan</div>
+      <div class="chip cv" onclick="go('What free AI tools should I use to create digital products?')">Free AI tools</div>
+    </div>
+  </div>
+</div>
+
+<!-- INPUT -->
+<div id="input-area">
+  <div class="inp-wrap cv-f" id="inp-wrap">
+    <textarea id="txt" rows="1" placeholder="Ask DALE AI anything…" oninput="resize(this)" onkeydown="onKey(event)"></textarea>
+    <button id="send" class="cv-s" onclick="send()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+  <div class="foot" id="foot">DALE AI · Claude Sonnet 4.6 + Gemini 2.0 Flash · Exclusively yours</div>
+</div>
+
+<script>
+/* ── STATE ── */
+let mode = 'claude';
+let cvHist = [], gmHist = [];
+let cvKey = '', gmKey = '';
+let busy = false;
+let dip = null;
+
+const SYS = `You are DALE AI — a sharp, practical personal AI assistant built exclusively for Christian Dale. You specialize in freelance strategy, micro-income opportunities, Canva design, AI content creation, social media kits, and digital products. Christian is building his freelance business from the ground up. Be direct, clear, actionable, and encouraging. No fluff. Format responses cleanly with short paragraphs or bullet points where helpful.`;
+
+/* ── PWA ── */
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/dale-ai/sw.js').catch(()=>{}));
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;if(!localStorage.getItem('d_nodip'))document.getElementById('install-banner').classList.add('show');});
+document.getElementById('ib-btn').addEventListener('click',async()=>{if(!dip)return;dip.prompt();await dip.userChoice;document.getElementById('install-banner').classList.remove('show');dip=null;});
+function dismissInstall(){document.getElementById('install-banner').classList.remove('show');localStorage.setItem('d_nodip','1');}
+
+/* ── INIT ── */
+window.onload=()=>{
+  const ck=localStorage.getItem('d_cv'); const gk=localStorage.getItem('d_gm');
+  if(ck){cvKey=ck;document.getElementById('cv-key').value=ck;showSaved('cv');}
+  if(gk){gmKey=gk;document.getElementById('gm-key').value=gk;showSaved('gm');}
+};
+
+/* ── KEYS ── */
+function saveKey(m){
+  const v=document.getElementById(m+'-key').value.trim();
+  if(m==='cv'&&!v.startsWith('sk-ant')){alert('Claude key must start with sk-ant-');return;}
+  if(m==='gm'&&!v.startsWith('AIza')){alert('Gemini key must start with AIza');return;}
+  if(m==='cv'){cvKey=v;localStorage.setItem('d_cv',v);}
+  else{gmKey=v;localStorage.setItem('d_gm',v);}
+  showSaved(m);
+}
+function showSaved(m){
+  const row=document.getElementById(m+'-row');
+  row.querySelector('input').style.display='none';
+  row.querySelector('.key-save').style.display='none';
+  row.querySelector('label').style.display='none';
+  document.getElementById(m+'-saved').classList.add('on');
+}
+function resetKey(m){
+  const row=document.getElementById(m+'-row');
+  row.querySelector('input').style.display='';
+  row.querySelector('.key-save').style.display='';
+  row.querySelector('label').style.display='';
+  document.getElementById(m+'-saved').classList.remove('on');
+}
+
+/* ── MODE ── */
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const map={claude:'.cv',gemini:'.gm',both:'.both'};
+  document.querySelector('.tab'+map[m]).classList.add('active');
+
+  const showCv=m==='claude'||m==='both';
+  const showGm=m==='gemini'||m==='both';
+  document.getElementById('cv-row').classList.toggle('on',showCv);
+  document.getElementById('gm-row').classList.toggle('on',showGm);
+
+  const bw=document.getElementById('both-wrap');
+  const chat=document.getElementById('chat');
+  if(m==='both'){bw.classList.add('on');chat.style.display='none';}
+  else{bw.classList.remove('on');chat.style.display='';}
+
+  const iw=document.getElementById('inp-wrap');
+  const sb=document.getElementById('send');
+  if(m==='gemini'){iw.className='inp-wrap gm-f';sb.className='gm-s';sb.id='send';}
+  else{iw.className='inp-wrap cv-f';sb.className='cv-s';sb.id='send';}
+
+  updateWelcome(m);
+  updateFoot(m);
+}
+
+function updateWelcome(m){
+  const ic=document.getElementById('wl-icon');
+  const ti=document.getElementById('wl-title');
+  const su=document.getElementById('wl-sub');
+  const chips=document.querySelectorAll('.chip');
+  if(!ic)return;
+  if(m==='claude'){
+    ic.className='welcome-logo cv-logo';ic.textContent='D';
+    ti.textContent="Hey, I'm DALE AI";
+    su.textContent='Powered by Claude Sonnet 4.6 — precise, thoughtful, powerful.';
+    chips.forEach(c=>{c.className='chip cv';});
+  } else if(m==='gemini'){
+    ic.className='welcome-logo gm-logo';ic.textContent='D';
+    ti.textContent="Hey, I'm DALE AI";
+    su.textContent='Running on Gemini 2.0 Flash — fast, free, no billing required.';
+    chips.forEach(c=>{c.className='chip gm';});
+  } else {
+    ic.className='welcome-logo both-logo';ic.textContent='⚡';
+    ti.textContent='Two AIs, One Message';
+    su.textContent='Send once — get Claude and Gemini responses side by side. Compare instantly.';
+    chips.forEach(c=>{c.className='chip cv';});
+  }
+}
+
+function updateFoot(m){
+  const f=document.getElementById('foot');
+  const txt={claude:'DALE AI · Claude Sonnet 4.6 · Exclusively yours',gemini:'DALE AI · Gemini 2.0 Flash · Free & unlimited',both:'DALE AI · Claude + Gemini · Side-by-side comparison'};
+  f.textContent=txt[m];
+}
+
+/* ── TEXTAREA ── */
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+
+/* ── RENDER ── */
+function mkMsg(role,content,model){
+  const chat=document.getElementById('chat');
+  const w=document.getElementById('welcome');if(w)w.remove();
+  const d=document.createElement('div');
+  const mc=role==='user'?'u':(model==='gemini'?'gm-msg':'cv-msg');
+  d.className='msg '+mc;
+  const av=document.createElement('div');av.className='av';
+  av.textContent=role==='user'?'CD':(model==='gemini'?'G':'AI');
+  const b=document.createElement('div');b.className='bbl';
+  if(role!=='user'){
+    const tag=document.createElement('div');
+    tag.className='src-tag '+(model==='gemini'?'gm-tag':'cv-tag');
+    tag.textContent=model==='gemini'?'✦ Gemini 2.0 Flash':'⚡ Claude Sonnet 4.6';
+    b.appendChild(tag);
+  }
+  const cd=document.createElement('div');cd.innerHTML=fmt(content);b.appendChild(cd);
+  d.appendChild(av);d.appendChild(b);chat.appendChild(d);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function mkTyping(model){
+  const chat=document.getElementById('chat');
+  const w=document.getElementById('welcome');if(w)w.remove();
+  const d=document.createElement('div');
+  d.className='msg '+(model==='gemini'?'gm-msg':'cv-msg');d.id='ty';
+  const av=document.createElement('div');av.className='av';av.textContent=model==='gemini'?'G':'AI';
+  const b=document.createElement('div');b.className='bbl';
+  b.innerHTML=`<div class="tyd ${model==='gemini'?'gm-ty':'cv-ty'}"><s></s><s></s><s></s></div>`;
+  d.appendChild(av);d.appendChild(b);chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
+}
+function rmTyping(){const e=document.getElementById('ty');if(e)e.remove();}
+
+/* ── BOTH RENDER ── */
+function bpMsg(panel,role,content,cls){
+  const c=document.getElementById('bp-'+panel);
+  const d=document.createElement('div');d.className='bb '+cls;
+  d.innerHTML=role==='user'?esc(content):fmt(content);
+  c.appendChild(d);c.scrollTop=c.scrollHeight;return d;
+}
+function bpTyping(panel,cls){
+  const c=document.getElementById('bp-'+panel);
+  const d=document.createElement('div');d.className='bb '+cls;d.id='ty-'+panel;
+  d.innerHTML=`<div class="tyd ${panel==='cv'?'cv-ty':'gm-ty'}"><s></s><s></s><s></s></div>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+function rmBpTyping(panel){const e=document.getElementById('ty-'+panel);if(e)e.remove();}
+
+/* ── FORMAT ── */
+function fmt(t){
+  t=t.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre><code>${esc(c.trim())}</code></pre>`);
+  t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
+  t=t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  t=t.replace(/^### (.*)/gm,'<strong>$1</strong>');
+  t=t.replace(/^## (.*)/gm,'<strong>$1</strong>');
+  t=t.replace(/^- (.*)/gm,'• $1');
+  t=t.replace(/\n/g,'<br>');
+  return t;
+}
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ── API: CLAUDE ── */
+async function callClaude(hist){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':cvKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system:SYS,messages:hist})
+  });
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Claude error '+r.status);}
+  return (await r.json()).content[0].text;
+}
+
+/* ── API: GEMINI ── */
+async function callGemini(hist){
+  const contents=hist.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gmKey}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({system_instruction:{parts:[{text:SYS}]},contents,generationConfig:{maxOutputTokens:1024}})
+  });
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Gemini error '+r.status);}
+  const d=await r.json();
+  return d.candidates[0].content.parts[0].text;
+}
+
+/* ── SEND ── */
+async function send(){
+  const inp=document.getElementById('txt');
+  const t=inp.value.trim();
+  if(!t||busy)return;
+  inp.value='';inp.style.height='auto';
+  busy=true;document.getElementById('send').disabled=true;
+
+  if(mode==='both') await sendBoth(t);
+  else if(mode==='claude') await sendClaude(t);
+  else await sendGemini(t);
+
+  busy=false;document.getElementById('send').disabled=false;inp.focus();
+}
+
+async function sendClaude(t){
+  if(!cvKey){errLine('Enter your Claude API key above.');return;}
+  mkMsg('user',t,'claude');cvHist.push({role:'user',content:t});mkTyping('claude');
+  try{
+    const rep=await callClaude(cvHist);rmTyping();
+    cvHist.push({role:'assistant',content:rep});mkMsg('ai',rep,'claude');
+  }catch(e){rmTyping();errLine(e.message);cvHist.pop();}
+}
+
+async function sendGemini(t){
+  if(!gmKey){errLine('Enter your Gemini API key above. Free at aistudio.google.com');return;}
+  mkMsg('user',t,'gemini');gmHist.push({role:'user',content:t});mkTyping('gemini');
+  try{
+    const rep=await callGemini(gmHist);rmTyping();
+    gmHist.push({role:'assistant',content:rep});mkMsg('ai',rep,'gemini');
+  }catch(e){rmTyping();errLine(e.message);gmHist.pop();}
+}
+
+async function sendBoth(t){
+  if(!cvKey&&!gmKey){alert('Save at least one API key above.');return;}
+  bpMsg('cv','user',t,'u-bb');bpMsg('gm','user',t,'u-bb');
+  const jobs=[];
+
+  if(cvKey){
+    cvHist.push({role:'user',content:t});bpTyping('cv','cv-bb');
+    jobs.push(callClaude(cvHist).then(r=>{rmBpTyping('cv');cvHist.push({role:'assistant',content:r});bpMsg('cv','ai',r,'cv-bb');})
+      .catch(e=>{rmBpTyping('cv');bpMsg('cv','ai','⚠️ '+e.message,'err-bb');cvHist.pop();}));
+  } else bpMsg('cv','ai','⚠️ No Claude key saved','err-bb');
+
+  if(gmKey){
+    gmHist.push({role:'user',content:t});bpTyping('gm','gm-bb');
+    jobs.push(callGemini(gmHist).then(r=>{rmBpTyping('gm');gmHist.push({role:'assistant',content:r});bpMsg('gm','ai',r,'gm-bb');})
+      .catch(e=>{rmBpTyping('gm');bpMsg('gm','ai','⚠️ '+e.message,'err-bb');gmHist.pop();}));
+  } else bpMsg('gm','ai','⚠️ No Gemini key saved','err-bb');
+
+  await Promise.allSettled(jobs);
+}
+
+function errLine(msg){
+  const chat=document.getElementById('chat');
+  const d=document.createElement('div');d.className='err-line';d.textContent='⚠️ '+msg;
+  chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
+}
+
+function go(t){document.getElementById('txt').value=t;send();}
+
+function clearAll(){
+  cvHist=[];gmHist=[];
+  document.getElementById('bp-cv').innerHTML='';
+  document.getElementById('bp-gm').innerHTML='';
+  document.getElementById('chat').innerHTML=`
+    <div class="welcome" id="welcome">
+      <div class="welcome-logo cv-logo" id="wl-icon">D</div>
+      <h2 id="wl-title">Hey, I'm DALE AI</h2>
+      <p id="wl-sub">Your personal assistant — Claude Sonnet 4.6 or Gemini 2.0 Flash.</p>
+      <div class="chips" id="wl-chips">
+        <div class="chip cv" onclick="go('Write a Fiverr gig for social media design services')">Fiverr gig</div>
+        <div class="chip cv" onclick="go('Give me 5 micro-income ideas I can start this week')">Micro-income ideas</div>
+        <div class="chip cv" onclick="go('Write a client proposal email for a Canva design project')">Client proposal</div>
+        <div class="chip cv" onclick="go('What Canva templates sell best on Etsy right now?')">Canva tips</div>
+        <div class="chip cv" onclick="go('Create a 7-day Instagram content plan for a lifestyle brand')">Content plan</div>
+        <div class="chip cv" onclick="go('What free AI tools should I use to create digital products?')">Free AI tools</div>
+      </div>
+    </div>`;
+  updateWelcome(mode);
+}
+</script>
+</body>
+</html>
