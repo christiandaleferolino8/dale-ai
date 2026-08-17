@@ -1,48 +1,71 @@
-# CUA Policy Control — ChatGPT Custom App / MCP Server
+# CUA Policy Control — MCP + CLI Automation
 
-A narrow MCP app for the deployed CUA runtime. It exposes read-only Chromium/CDP inspection plus safe policy staging using the existing CUA `policy_merge.py` semantics.
+A narrow control plane for the deployed CUA runtime. MCP and CLI now share one tool registry, so the same contracts are available to ChatGPT/custom MCP clients and shell automation without duplicating implementations.
 
-## Tools
+## Architecture
+
+```text
+                 shared core.py tool registry
+                    /                  \
+             MCP /mcp                  CLI
+               |                        |
+        profile allowlist          tools / call
+               |                   inspect / smoke
+               +-----------+------------+
+                           |
+                  Chromium loopback CDP
+                  policy_merge.py bridge
+```
+
+The implementation combines high-signal patterns from MCPorter, mcp2cli, XcodeBuildMCP, MCP Inspector, Playwriter and Docker MCP Gateway while keeping the original CUA safety boundary. Their source code is not vendored.
+
+## Shared tools
 
 - `cua.runtime_status` — read CDP/browser version.
 - `cua.browser_pages` — list current pages without exposing WebSocket debugger URLs.
-- `policy.merge.preview` — run the deployed CUA `deep_merge` behavior in memory.
-- `policy.merge` — atomically stage a merged policy in this app's state directory and revision-back up the previous staged policy.
-- `policy.current` — read the staged policy.
+- `policy.merge.preview` — run deployed CUA `deep_merge` behavior in memory.
+- `policy.merge` — atomically stage a merged policy under app-owned state and revision-back up the previous staged policy.
+- `policy.current` — read staged policy.
 
-`policy.merge` deliberately does **not** write `/etc/chromium/policies`, modify authentication, restart Chromium, or change Supervisor. Activation is kept outside the MCP write surface.
+Browser operations remain read-only. `policy.merge` does **not** write `/etc/chromium/policies`, modify authentication, restart Chromium, or change Supervisor.
 
-## Local run
+## CLI
 
 ```bash
-cd cua-policy-control
+./scripts/cua-policy-control tools
+./scripts/cua-policy-control tools --search policy
+./scripts/cua-policy-control call cua.runtime_status
+./scripts/cua-policy-control call policy.merge.preview --args merge.json
+./scripts/cua-policy-control inspect --live
+./scripts/cua-policy-control smoke
+```
+
+Arguments to `call --args` may be inline JSON, a JSON file path, or `-` for stdin.
+
+### Profiles / tool allowlists
+
+Profiles are app-owned allowlists inspired by gateway/profile architectures. They do not affect system Supervisor or Chromium configuration.
+
+```bash
+./scripts/cua-policy-control profile list
+./scripts/cua-policy-control profile set readonly cua.runtime_status cua.browser_pages
+./scripts/cua-policy-control profile show readonly
+```
+
+Set `CUA_MCP_PROFILE=readonly` before starting the MCP server to expose only that profile's tools.
+
+## MCP run
+
+```bash
 export CUA_MCP_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
 uvicorn server:app --host 127.0.0.1 --port 8765
 ```
 
-Test:
+For a ChatGPT custom app, publish `/mcp` behind TLS/authentication or a supported secure tunnel. Do not expose local CDP directly.
 
-```bash
-curl -s http://127.0.0.1:8765/healthz
-curl -s http://127.0.0.1:8765/mcp \
-  -H "Authorization: Bearer $CUA_MCP_TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"smoke","version":"1"}}}'
-```
+## Test harness
 
-## ChatGPT custom-app connection
-
-ChatGPT custom MCP apps require a **remote MCP endpoint**. Do not expose the local listener directly. Put `/mcp` behind TLS and authentication, or use Secure MCP Tunnel where available. Configure the resulting HTTPS endpoint in ChatGPT Developer Mode and choose the matching Bearer/OAuth authentication mechanism.
-
-Recommended app name: **CUA Policy Control**.
-
-MCP URL after remote publication: `https://YOUR_HOST/mcp`.
-
-## Test-harness wiring
-
-In the deployed CUA runtime, this app is validated against the `pogs-test-harness` skill. The harness runner auto-detects `/openai/project/cua/.skills/pogs-test-harness/SKILL.md` when present; for other environments set `POGS_TEST_HARNESS_SKILL` to the skill path.
-
-Run the complete validation gate with:
+The deployment is wired to `pogs-test-harness` and exercises policy semantics, security guards, shared-registry consistency, profile isolation, live CDP, CLI calls, MCP calls and smoke probes.
 
 ```bash
 ./scripts/run_test_harness.sh
@@ -50,4 +73,4 @@ Run the complete validation gate with:
 npm test
 ```
 
-The integration tests use a temporary policy state root and never activate `/etc/chromium/policies`.
+Set `POGS_TEST_HARNESS_SKILL` when the skill is installed somewhere other than `/openai/project/cua/.skills/pogs-test-harness/SKILL.md`.
