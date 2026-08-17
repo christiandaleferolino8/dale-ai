@@ -14,6 +14,6 @@ python -m unittest -v \
   tests.test_profiles \
   tests.test_mcp_harness \
   tests.test_cli_harness
-./scripts/cua-policy-control smoke >/tmp/cua-policy-control-smoke.json
+bash ./scripts/cua-policy-control smoke >/tmp/cua-policy-control-smoke.json
 python -m json.tool /tmp/cua-policy-control-smoke.json >/dev/null
 printf 'HARNESS_SKILL=PASS\nHARNESS_SOURCE=%s\nHARNESS_TARGET=%s\n' "$SKILL" "$APP_ROOT"
