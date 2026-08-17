@@ -13,7 +13,7 @@ This project is gated by the deployed `pogs-test-harness` skill. The runner trea
 Run:
 
 ```bash
-./scripts/run_test_harness.sh
+bash ./scripts/run_test_harness.sh
 ```
 
 The policy tests use temporary state directories and never activate `/etc/chromium/policies`.
