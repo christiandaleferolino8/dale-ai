@@ -32,12 +32,12 @@ Browser operations remain read-only. `policy.merge` does **not** write `/etc/chr
 ## CLI
 
 ```bash
-./scripts/cua-policy-control tools
-./scripts/cua-policy-control tools --search policy
-./scripts/cua-policy-control call cua.runtime_status
-./scripts/cua-policy-control call policy.merge.preview --args merge.json
-./scripts/cua-policy-control inspect --live
-./scripts/cua-policy-control smoke
+bash ./scripts/cua-policy-control tools
+bash ./scripts/cua-policy-control tools --search policy
+bash ./scripts/cua-policy-control call cua.runtime_status
+bash ./scripts/cua-policy-control call policy.merge.preview --args merge.json
+bash ./scripts/cua-policy-control inspect --live
+bash ./scripts/cua-policy-control smoke
 ```
 
 Arguments to `call --args` may be inline JSON, a JSON file path, or `-` for stdin.
@@ -47,9 +47,9 @@ Arguments to `call --args` may be inline JSON, a JSON file path, or `-` for stdi
 Profiles are app-owned allowlists inspired by gateway/profile architectures. They do not affect system Supervisor or Chromium configuration.
 
 ```bash
-./scripts/cua-policy-control profile list
-./scripts/cua-policy-control profile set readonly cua.runtime_status cua.browser_pages
-./scripts/cua-policy-control profile show readonly
+bash ./scripts/cua-policy-control profile list
+bash ./scripts/cua-policy-control profile set readonly cua.runtime_status cua.browser_pages
+bash ./scripts/cua-policy-control profile show readonly
 ```
 
 Set `CUA_MCP_PROFILE=readonly` before starting the MCP server to expose only that profile's tools.
@@ -68,7 +68,7 @@ For a ChatGPT custom app, publish `/mcp` behind TLS/authentication or a supporte
 The deployment is wired to `pogs-test-harness` and exercises policy semantics, security guards, shared-registry consistency, profile isolation, live CDP, CLI calls, MCP calls and smoke probes.
 
 ```bash
-./scripts/run_test_harness.sh
+bash ./scripts/run_test_harness.sh
 # or
 npm test
 ```
