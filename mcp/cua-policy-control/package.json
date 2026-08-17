@@ -6,10 +6,10 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "./scripts/run_test_harness.sh",
-    "test:harness": "./scripts/run_test_harness.sh",
-    "cli": "./scripts/cua-policy-control",
-    "smoke": "./scripts/cua-policy-control smoke"
+    "test": "bash ./scripts/run_test_harness.sh",
+    "test:harness": "bash ./scripts/run_test_harness.sh",
+    "cli": "bash ./scripts/cua-policy-control",
+    "smoke": "bash ./scripts/cua-policy-control smoke"
   },
   "keywords": [],
   "author": "",
