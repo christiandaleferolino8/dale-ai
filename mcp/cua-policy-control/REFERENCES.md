@@ -1,12 +1,12 @@
-# MCP + CLI automation references
+# MCP + CLI automation integration references
 
-High-signal repositories used as architectural references for this project:
+The project was refactored around patterns observed in these public projects. No reference implementation is vendored or copied wholesale.
 
-- `modelcontextprotocol/inspector` — official MCP testing/debugging surface with CLI/proxy architecture.
-- `getsentry/XcodeBuildMCP` — one package exposing both MCP server mode and direct CLI mode, plus agent skills.
-- `openclaw/mcporter` — MCP runtime + CLI/code-generation toolkit; can turn MCP servers into reusable CLIs.
-- `remorses/playwriter` — browser automation exposed through both CLI and MCP with stateful sessions.
-- `knowsuchagency/mcp2cli` — runtime translation of MCP/OpenAPI/GraphQL into CLI commands without code generation.
-- `docker/mcp-gateway` — CLI-driven MCP gateway, discovery, isolation, auth and multi-server lifecycle management.
+- `openclaw/mcporter` — one MCP runtime usable from scripts/CLI plus dynamic tool discovery. Integrated as a shared registry and generic `call` command.
+- `knowsuchagency/mcp2cli` — runtime CLI projection, searchable tool discovery and compact machine-oriented output. Integrated as `tools --search`, dynamic JSON arguments and `--compact` output.
+- `getsentry/XcodeBuildMCP` — one package with MCP and direct CLI modes sharing underlying functionality. Integrated as `core.py` consumed by both `server.py` and `cli.py`.
+- `modelcontextprotocol/inspector` — shared core plus automation-friendly inspection/smoke workflows. Integrated as `inspect --live`, `smoke`, and real transport tests.
+- `remorses/playwriter` — reuse of an already-running browser instead of spawning a second browser. Integrated by attaching read-only helpers to the existing loopback CDP endpoint.
+- `docker/mcp-gateway` — profiles and explicit tool allowlists. Integrated as app-owned profile storage and MCP tool filtering via `CUA_MCP_PROFILE`.
 
-These are references only; this repository does not vendor their source.
+Safety deviations are intentional: arbitrary JavaScript execution, browser navigation, host command execution, secret management, OAuth brokerage, container lifecycle control and system Chromium policy activation are not exposed by this app.
