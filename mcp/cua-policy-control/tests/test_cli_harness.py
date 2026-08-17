@@ -17,7 +17,7 @@ class CliHarnessTests(unittest.TestCase):
         merged["CUA_MCP_TOKEN"] = ""
         if env:
             merged.update(env)
-        completed = subprocess.run([str(CLI), *args], cwd=ROOT, text=True, capture_output=True, env=merged, timeout=15)
+        completed = subprocess.run(["bash", str(CLI), *args], cwd=ROOT, text=True, capture_output=True, env=merged, timeout=15)
         return completed, json.loads(completed.stdout) if completed.stdout.strip() else None
 
     def test_tools_and_dynamic_call_share_registry(self):
