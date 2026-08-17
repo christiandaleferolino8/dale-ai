@@ -2,10 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
-import sys
-import urllib.error
-import urllib.request
 from typing import Any
 
 from starlette.applications import Starlette
@@ -13,79 +9,16 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-APP_NAME = "CUA Policy Control"
-APP_VERSION = "0.1.0"
+from core import APP_NAME, APP_VERSION, TOOL_MAP, call_tool, list_tools
+from profiles import resolve_profile
+
 SUPPORTED_PROTOCOLS = {"2025-06-18", "2025-11-25"}
 TOKEN = os.environ.get("CUA_MCP_TOKEN", "")
 ALLOWED_ORIGINS = {
     x.strip()
-    for x in os.environ.get(
-        "CUA_MCP_ALLOWED_ORIGINS",
-        "https://chatgpt.com,https://chat.openai.com",
-    ).split(",")
+    for x in os.environ.get("CUA_MCP_ALLOWED_ORIGINS", "https://chatgpt.com,https://chat.openai.com").split(",")
     if x.strip()
 }
-POLICY_BRIDGE = os.path.join(os.path.dirname(__file__), "python", "policy_bridge.py")
-CDP_BASE = os.environ.get("CUA_CDP_BASE", "http://127.0.0.1:9222")
-
-TOOLS = [
-    {
-        "name": "cua.runtime_status",
-        "title": "CUA Runtime Status",
-        "description": "Read the local Chromium CDP version and report whether the CUA browser control plane is reachable.",
-        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
-        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
-    },
-    {
-        "name": "cua.browser_pages",
-        "title": "List CUA Browser Pages",
-        "description": "List the currently open Chromium pages from the loopback DevTools endpoint. This is read-only.",
-        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
-        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
-    },
-    {
-        "name": "policy.merge.preview",
-        "title": "Preview Chromium Policy Merge",
-        "description": "Preview the exact deep-merge semantics used by the deployed CUA policy_merge.py without writing files.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "fragments": {"type": "array", "minItems": 1, "items": {"type": "object"}},
-                "merge_keys": {"type": "array", "items": {"type": "string"}, "default": []},
-            },
-            "required": ["fragments"],
-            "additionalProperties": False,
-        },
-        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
-    },
-    {
-        "name": "policy.merge",
-        "title": "Stage Chromium Policy Merge",
-        "description": "Merge policy fragments using the deployed CUA policy_merge.py semantics and atomically stage the result in this app's isolated state directory. Existing staged output is revision-backed up. This does not modify /etc/chromium or restart Chromium.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "profile": {"type": "string", "pattern": "^[A-Za-z0-9_-]+$", "default": "default"},
-                "fragments": {"type": "array", "minItems": 1, "items": {"type": "object"}},
-                "merge_keys": {"type": "array", "items": {"type": "string"}, "default": []},
-            },
-            "required": ["fragments"],
-            "additionalProperties": False,
-        },
-        "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": False},
-    },
-    {
-        "name": "policy.current",
-        "title": "Read Staged Chromium Policy",
-        "description": "Read the currently staged merged policy for an app-owned profile.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {"profile": {"type": "string", "pattern": "^[A-Za-z0-9_-]+$", "default": "default"}},
-            "additionalProperties": False,
-        },
-        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
-    },
-]
 
 
 def rpc_result(req_id: Any, result: Any) -> JSONResponse:
@@ -122,63 +55,15 @@ def check_request_security(request: Request) -> Response | None:
     return None
 
 
-def fetch_json(url: str) -> Any:
-    req = urllib.request.Request(url, headers={"User-Agent": f"{APP_NAME}/{APP_VERSION}"})
-    with urllib.request.urlopen(req, timeout=3) as response:
-        return json.load(response)
-
-
-def policy_call(action: str, args: dict[str, Any]) -> Any:
-    cmd = [sys.executable, POLICY_BRIDGE, action]
-    if action in {"apply", "current"}:
-        cmd += ["--profile", args.get("profile", "default")]
-    payload = args if action != "current" else {}
-    completed = subprocess.run(
-        cmd,
-        input=json.dumps(payload),
-        text=True,
-        capture_output=True,
-        timeout=10,
-        check=False,
-        env=os.environ.copy(),
-    )
-    if completed.returncode != 0:
-        raise RuntimeError((completed.stderr or completed.stdout or "policy helper failed").strip())
-    return json.loads(completed.stdout)
-
-
-def call_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
+def allowed_tools() -> set[str]:
     try:
-        if name == "cua.runtime_status":
-            version = fetch_json(f"{CDP_BASE}/json/version")
-            safe_version = {k: v for k, v in version.items() if k != "webSocketDebuggerUrl"}
-            return tool_result({"reachable": True, "cdp": "loopback", "browser": safe_version})
-        if name == "cua.browser_pages":
-            pages = fetch_json(f"{CDP_BASE}/json/list")
-            safe_pages = [
-                {k: p.get(k) for k in ("id", "type", "title", "url")}
-                for p in pages
-                if isinstance(p, dict)
-            ]
-            return tool_result({"count": len(safe_pages), "pages": safe_pages})
-        if name == "policy.merge.preview":
-            merged = policy_call("preview", args)
-            return tool_result({"merged": merged})
-        if name == "policy.merge":
-            return tool_result(policy_call("apply", args))
-        if name == "policy.current":
-            return tool_result(policy_call("current", args))
-        raise KeyError(name)
-    except KeyError:
-        raise
-    except (urllib.error.URLError, TimeoutError) as exc:
-        return tool_result({"error": f"CDP unavailable: {exc}"}, is_error=True)
-    except Exception as exc:
-        return tool_result({"error": str(exc)}, is_error=True)
+        return resolve_profile(os.environ.get("CUA_MCP_PROFILE"))
+    except Exception:
+        return set(TOOL_MAP)
 
 
 async def healthz(request: Request) -> Response:
-    return JSONResponse({"ok": True, "name": APP_NAME, "version": APP_VERSION})
+    return JSONResponse({"ok": True, "name": APP_NAME, "version": APP_VERSION, "profile": os.environ.get("CUA_MCP_PROFILE", "default")})
 
 
 async def mcp_get(request: Request) -> Response:
@@ -213,19 +98,16 @@ async def mcp_post(request: Request) -> Response:
                 "protocolVersion": protocol,
                 "capabilities": {"tools": {"listChanged": False}},
                 "serverInfo": {"name": APP_NAME, "version": APP_VERSION, "description": "CUA browser inspection and safe Chromium policy staging"},
-                "instructions": "Use read-only CUA tools for runtime inspection. Preview policy merges before staging them. policy.merge only writes into the app-owned staging directory and never activates system Chromium policy.",
+                "instructions": "MCP and CLI share one tool registry. Browser tools are read-only. Preview policy merges before staging; policy.merge writes only to app-owned staging state.",
             },
         )
 
     if method in {"notifications/initialized", "notifications/cancelled"}:
         return Response(status_code=202)
-
     if method == "ping":
         return rpc_result(req_id, {})
-
     if method == "tools/list":
-        return rpc_result(req_id, {"tools": TOOLS})
-
+        return rpc_result(req_id, {"tools": list_tools(allowed_tools())})
     if method == "tools/call":
         name = params.get("name")
         args = params.get("arguments") or {}
@@ -233,9 +115,14 @@ async def mcp_post(request: Request) -> Response:
             return rpc_error(req_id, -32602, "Tool name is required")
         if not isinstance(args, dict):
             return rpc_error(req_id, -32602, "Tool arguments must be an object")
-        if name not in {tool["name"] for tool in TOOLS}:
-            return rpc_error(req_id, -32601, f"Unknown tool: {name}")
-        return rpc_result(req_id, call_tool(name, args))
+        if name not in TOOL_MAP or name not in allowed_tools():
+            return rpc_error(req_id, -32601, f"Unknown or disabled tool: {name}")
+        try:
+            data = call_tool(name, args)
+            is_error = isinstance(data, dict) and data.get("reachable") is False and "error" in data
+            return rpc_result(req_id, tool_result(data, is_error=is_error))
+        except Exception as exc:
+            return rpc_result(req_id, tool_result({"error": str(exc)}, is_error=True))
 
     return rpc_error(req_id, -32601, f"Method not found: {method}")
 
