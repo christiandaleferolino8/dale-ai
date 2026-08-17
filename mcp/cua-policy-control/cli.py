@@ -44,7 +44,8 @@ def cmd_call(args: argparse.Namespace) -> int:
     if args.name not in TOOL_MAP:
         print(f"unknown tool: {args.name}", file=sys.stderr)
         return 2
-    emit(call_tool(args.name, parse_json_arg(args.args)), args.compact)
+    payload = parse_json_arg(args.args)
+    emit(call_tool(args.name, payload), args.compact)
     return 0
 
 
