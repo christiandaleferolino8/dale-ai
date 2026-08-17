@@ -1,0 +1,17 @@
+{
+  "name": "custom_app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "./scripts/run_test_harness.sh",
+    "test:harness": "./scripts/run_test_harness.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "CUA Policy Control MCP custom app validated by the deployed Pogs Test Harness skill",
+  "type": "module"
+}
